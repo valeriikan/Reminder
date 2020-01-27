@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity() {
                 .setPositiveButton("Delete") { _, _ ->
 
                     // Cancel scheduled reminder with AlarmManager
-                    if (selected.type == "time") {
+                    if (selected.time != null) {
                         val manager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
                         val intent = Intent(this@MainActivity, ReminderReceiver::class.java)
                         val pending = PendingIntent.getBroadcast(this@MainActivity,

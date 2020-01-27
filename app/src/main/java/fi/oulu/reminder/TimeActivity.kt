@@ -37,8 +37,8 @@ class TimeActivity : AppCompatActivity() {
                 // Create a reminder instance
                 val reminder = Reminder(
                     uid = null,
-                    type = "time",
-                    trigger = calendar.timeInMillis.toString(),
+                    time = calendar.timeInMillis,
+                    location = null,
                     message = et_message.text.toString()
                 )
 

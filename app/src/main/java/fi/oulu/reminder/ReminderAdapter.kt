@@ -22,19 +22,17 @@ class ReminderAdapter(context: Context, private val list: List<Reminder>) : Base
         row.itemMessage.text = list[position].message
 
         // Set trigger text depending on the reminder type
-        if (list[position].type == "time") {
+        if (list[position].time != null) {
             val sdf = SimpleDateFormat("HH:mm\ndd.MM.yyy", Locale.getDefault())
             sdf.timeZone = TimeZone.getDefault()
 
-            val time = list[position].trigger.toLong()
+            val time = list[position].time
             val date = sdf.format(time)
             row.itemTrigger.text = date
-        }
-
-        if (list[position].type == "location") {
+        } else if (list[position].location != null) {
             // TODO: Double check what has to be shown as a trigger
             // e.g. lat:long
-            row.itemTrigger.text = list[position].trigger
+            row.itemTrigger.text = list[position].location
         }
 
         return row

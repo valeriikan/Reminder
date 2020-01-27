@@ -18,8 +18,8 @@ class MapActivity : AppCompatActivity() {
             // dummy
             val reminder = Reminder(
                 uid = null,
-                type = "location",
-                trigger = "65.059640\n25.466246",
+                time = null,
+                location = "65.059640\n25.466246",
                 message = "test"
             )
 

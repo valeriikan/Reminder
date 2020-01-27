@@ -5,8 +5,8 @@ import androidx.room.*
 @Entity(tableName = "reminders")
 data class Reminder(
     @PrimaryKey(autoGenerate = true) var uid: Int?,
-    @ColumnInfo(name = "type") var type: String,
-    @ColumnInfo(name = "trigger") var trigger: String,
+    @ColumnInfo(name = "time") var time: Long?,
+    @ColumnInfo(name = "location") var location: String?,
     @ColumnInfo(name = "message") var message: String
 )
 
