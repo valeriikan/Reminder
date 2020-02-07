@@ -8,43 +8,54 @@
 
 
     <fragment
+        android:id="@+id/place_autocomplete_fragment"
+        android:name="com.google.android.gms.location.places.ui.PlaceAutocompleteFragment"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintHeight_percent=".08"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <fragment
         android:id="@+id/map_fragment"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent=".92"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/place_autocomplete_fragment"
+        tools:context=".MapActivity" />
+
+    <EditText
+        android:id="@+id/reminder_message"
+        android:layout_width="323dp"
+        android:layout_height="51dp"
+        android:background="#fff"
+        android:ems="10"
+        android:paddingStart="5dp"
+        android:paddingEnd="5dp"
+        android:hint=" Reminder text"
+        android:inputType="textPersonName"
+        app:layout_constraintBottom_toTopOf="@+id/map_create"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:context=".MapActivity"></fragment>
+        app:layout_constraintVertical_bias="0.935" />
 
     <Button
         android:id="@+id/map_create"
         android:layout_width="200dp"
-        android:layout_height="75dp"
-        android:layout_marginBottom="16dp"
+        android:layout_height="70dp"
+        android:layout_centerInParent="true"
+        android:layout_marginBottom="36dp"
         android:text="Create"
-        app:layout_constraintBottom_toBottomOf="@+id/map_fragment"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintStart_toEndOf="@+id/et_message"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.959" />
-
-    <EditText
-        android:id="@+id/editText"
-        android:layout_width="236dp"
-        android:layout_height="50dp"
-        android:layout_marginTop="16dp"
-        android:background="#fff"
-        android:ems="10"
-        android:hint="Search...."
-        android:inputType="text"
-        android:maxLines="1"
-        android:paddingLeft="20dp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.228"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
+        app:layout_constraintVertical_bias="0.995" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

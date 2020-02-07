@@ -2,6 +2,7 @@ package fi.oulu.reminder
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.location.Location
 import android.os.Bundle
 import android.widget.Toast
@@ -19,6 +20,8 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import kotlinx.android.synthetic.main.activity_map.*
 import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.toast
+import java.util.*
 
 
 class MapActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -26,6 +29,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     lateinit var gMap: GoogleMap
     lateinit var fusedLocationClient: FusedLocationProviderClient
 
+    var selectedLocation: LatLng? = null
+    var selectedLocationAddress = ""
     val LOCATION_REQUEST_CODE = 123
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,12 +43,28 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
         map_create.setOnClickListener {
 
-            // dummy
+
+            if (selectedLocation == null){
+
+                toast("Select a location ")
+                return@setOnClickListener
+            }
+
+            if (reminder_message.text.toString().isEmpty()){
+
+                toast("Enter reminder message")
+                return@setOnClickListener
+
+            }
+            var message = reminder_message.text.toString()
+
+            message=String.format("%s @ %s",message,selectedLocationAddress)
+
             val reminder = Reminder(
                 uid = null,
                 time = null,
-                location = "65.059640\n25.466246",
-                message = "test"
+                location = String.format("%.3f,%.3f", selectedLocation?.latitude,selectedLocation?.longitude ) ,
+                message = message
             )
 
             doAsync {
@@ -74,14 +95,47 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         } else {
             gMap.isMyLocationEnabled = true
 
-            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
 
+            //Zoom to last known location
+            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
                 if (location != null) {
                     with(gMap) {
                         val latLong = LatLng(location.latitude, location.longitude)
                         animateCamera(CameraUpdateFactory.newLatLngZoom(latLong, 13f))
                         //addMarker(MarkerOptions().position(latLong))
                     }
+                }
+
+            }
+
+            // Add marker on map after click
+
+            gMap.setOnMapClickListener { location: LatLng ->
+
+                with(gMap) {
+                    clear()
+                    val latLong = LatLng(location.latitude, location.longitude)
+                    animateCamera(CameraUpdateFactory.newLatLngZoom(latLong, 13f))
+
+                    val geocoder = Geocoder(applicationContext, Locale.getDefault())
+                    var title = ""
+                    var city=""
+                    try {
+
+                        val addresses =
+                            geocoder.getFromLocation(latLong.latitude, latLong.longitude, 1)
+                        val address = addresses.get(0).getAddressLine(0)
+                        city=addresses.get(0).locality.toUpperCase()
+                        title = address.toString()
+                    } catch (e: Exception) {
+                    }
+
+                    val marker = addMarker(MarkerOptions().position(latLong).snippet(title).title(city))
+                    marker.showInfoWindow()
+
+                    selectedLocation = latLong
+                    selectedLocationAddress= String.format("%s (%s)",city,title)
+
                 }
 
             }
