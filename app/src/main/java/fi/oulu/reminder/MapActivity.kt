@@ -5,6 +5,12 @@ import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.Location
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.KeyEvent
+import android.view.inputmethod.EditorInfo
+import android.widget.ArrayAdapter
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -21,6 +27,7 @@ import com.google.android.gms.maps.model.MarkerOptions
 import kotlinx.android.synthetic.main.activity_map.*
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.toast
+import org.w3c.dom.Text
 import java.util.*
 
 
@@ -33,6 +40,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     var selectedLocationAddress = ""
     val LOCATION_REQUEST_CODE = 123
 
+    var autoCompleteList = arrayListOf<String>("")
+    lateinit var autoCompletAdaptor: ArrayAdapter<String>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_map)
@@ -44,13 +54,13 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         map_create.setOnClickListener {
 
 
-            if (selectedLocation == null){
+            if (selectedLocation == null) {
 
                 toast("Select a location ")
                 return@setOnClickListener
             }
 
-            if (reminder_message.text.toString().isEmpty()){
+            if (reminder_message.text.toString().isEmpty()) {
 
                 toast("Enter reminder message")
                 return@setOnClickListener
@@ -58,12 +68,16 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             }
             var message = reminder_message.text.toString()
 
-            message=String.format("%s @ %s",message,selectedLocationAddress)
+            message = String.format("%s @ %s", message, selectedLocationAddress)
 
             val reminder = Reminder(
                 uid = null,
                 time = null,
-                location = String.format("%.3f,%.3f", selectedLocation?.latitude,selectedLocation?.longitude ) ,
+                location = String.format(
+                    "%.3f,%.3f",
+                    selectedLocation?.latitude,
+                    selectedLocation?.longitude
+                ),
                 message = message
             )
 
@@ -78,6 +92,54 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
             finish()
         }
+
+
+
+        autoCompletAdaptor =
+            ArrayAdapter<String>(
+                this,
+                android.R.layout.simple_dropdown_item_1line,
+                autoCompleteList
+            )
+
+        searchAutoComplete.setAdapter(autoCompletAdaptor)
+
+
+
+        searchMap.setOnClickListener {
+
+            val geocoder = Geocoder(applicationContext, Locale.getDefault())
+
+            try {
+                val searchText = searchAutoComplete.text.toString()
+                val addresses =
+                    geocoder.getFromLocationName(searchText, 1)
+                val address = addresses.get(0).getAddressLine(0)
+
+                val lat=addresses.get(0).latitude
+                val long=addresses.get(0).longitude
+
+                selectedLocation = LatLng(lat,long)
+                selectedLocationAddress = String.format("%s (%s)", searchText, address)
+
+                with(gMap) {
+                    clear()
+                    animateCamera(CameraUpdateFactory.newLatLngZoom(selectedLocation, 13f))
+                    val marker =
+                        addMarker(MarkerOptions().position(LatLng(lat,long)).snippet(address).title(searchText))
+                    marker.showInfoWindow()
+                }
+
+
+                autoCompleteList.add(String.format("%s (%s)", searchText, address))
+                autoCompletAdaptor.clear()
+                autoCompletAdaptor.addAll(autoCompleteList)
+                autoCompletAdaptor.notifyDataSetChanged()
+            } catch (e: Exception) {
+            }
+        }
+
+
     }
 
     override fun onMapReady(map: GoogleMap?) {
@@ -119,22 +181,23 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
                     val geocoder = Geocoder(applicationContext, Locale.getDefault())
                     var title = ""
-                    var city=""
+                    var city = ""
                     try {
 
                         val addresses =
                             geocoder.getFromLocation(latLong.latitude, latLong.longitude, 1)
                         val address = addresses.get(0).getAddressLine(0)
-                        city=addresses.get(0).locality.toUpperCase()
+                        city = addresses.get(0).locality.toUpperCase()
                         title = address.toString()
                     } catch (e: Exception) {
                     }
 
-                    val marker = addMarker(MarkerOptions().position(latLong).snippet(title).title(city))
+                    val marker =
+                        addMarker(MarkerOptions().position(latLong).snippet(title).title(city))
                     marker.showInfoWindow()
 
                     selectedLocation = latLong
-                    selectedLocationAddress= String.format("%s (%s)",city,title)
+                    selectedLocationAddress = String.format("%s (%s)", city, title)
 
                 }
 

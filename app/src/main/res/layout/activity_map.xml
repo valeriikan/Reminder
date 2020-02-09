@@ -7,14 +7,33 @@
     tools:context=".MapActivity">
 
 
-    <fragment
+    <LinearLayout
+        android:orientation="horizontal"
         android:id="@+id/place_autocomplete_fragment"
-        android:name="com.google.android.gms.location.places.ui.PlaceAutocompleteFragment"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintHeight_percent=".08"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+
+        <androidx.appcompat.widget.AppCompatAutoCompleteTextView
+            android:id="@+id/searchAutoComplete"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="4"
+            android:paddingLeft="10dp"
+            android:hint="Search ....."
+            />
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/searchMap"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_toRightOf="@+id/searchAutoComplete"
+            app:srcCompat="@drawable/ic_search" />
+
+    </LinearLayout>
 
     <fragment
         android:id="@+id/map_fragment"
@@ -33,10 +52,10 @@
         android:layout_height="51dp"
         android:background="#fff"
         android:ems="10"
-        android:paddingStart="5dp"
-        android:paddingEnd="5dp"
         android:hint=" Reminder text"
         android:inputType="textPersonName"
+        android:paddingStart="5dp"
+        android:paddingEnd="5dp"
         app:layout_constraintBottom_toTopOf="@+id/map_create"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
