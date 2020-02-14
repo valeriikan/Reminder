@@ -15,8 +15,11 @@ class ReminderReceiver : BroadcastReceiver() {
         val uid = intent.getIntExtra("uid", 0)
         val text = intent.getStringExtra("message")
 
+
         // TODO: Implement trigger event: e.g. notification
         context.toast(text!!)
+
+        MainActivity.ShowNofitication(context,text!!)
 
         // Remove reminder from db after it was shown
         doAsync {

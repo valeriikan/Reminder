@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Reminder</string>
+    <string name="reminder_createButton_text">Create</string>
+    <string name="reminder_text_hint">Reminder text</string>
 </resources>
