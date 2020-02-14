@@ -42,11 +42,13 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     lateinit var gMap: GoogleMap
     lateinit var fusedLocationClient: FusedLocationProviderClient
     val LOCATION_REQUEST_CODE = 123
+    val CAMERA_ZOOM_LEVEL = 14f
 
     lateinit var geofencingClient: GeofencingClient
     val GEOFENCE_RADIUS = 500.0
-    val GEOFENCE_ID = applicationContext.getString(R.string.app_name)
+    val GEOFENCE_ID = "REMINDER_GEOFENCE_ID"
     val GEOFENCE_EXPIRATION = 180 * 24 * 60 * 60 * 1000
+    val GEOFENCE_DWELL_DELAY = 2 * 60 * 1000
     val GEOFENCE_LOCATION_REQUEST_CODE = 12345
     lateinit var geoFenceReminder: Reminder
 
@@ -87,42 +89,33 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             message = String.format("%s @ %s", message, selectedLocationAddress)
 
             val reminder = Reminder(
-                uid = null,
-                time = null,
-                location = String.format(
-                    "%.3f,%.3f",
-                    selectedLocation?.latitude,
-                    selectedLocation?.longitude
-                ),
-                message = message
+                uid = null, time = null, location = String.format(
+                    "%.3f,%.3f", selectedLocation?.latitude, selectedLocation?.longitude
+                ), message = message
             )
 
+
+
             doAsync {
-                val db =
-                    Room.databaseBuilder(applicationContext, AppDatabase::class.java, "reminders")
-                        .build()
+                val db = Room.databaseBuilder(
+                    applicationContext, AppDatabase::class.java, "reminders"
+                ).build()
 
                 val uuid = db.reminderDao().insert(reminder).toInt()
                 db.close()
-
                 reminder.uid = uuid
                 geoFenceReminder = reminder
                 createGeoFence(selectedLocation!!, geoFenceReminder, geofencingClient)
             }
-
-
 
             finish()
         }
 
 
 
-        autoCompletAdaptor =
-            ArrayAdapter<String>(
-                this,
-                android.R.layout.simple_dropdown_item_1line,
-                autoCompleteList
-            )
+        autoCompletAdaptor = ArrayAdapter<String>(
+            this, android.R.layout.simple_dropdown_item_1line, autoCompleteList
+        )
 
         searchAutoComplete.setAdapter(autoCompletAdaptor)
 
@@ -134,8 +127,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
             try {
                 val searchText = searchAutoComplete.text.toString()
-                val addresses =
-                    geocoder.getFromLocationName(searchText, 1)
+                val addresses = geocoder.getFromLocationName(searchText, 1)
                 val address = addresses.get(0).getAddressLine(0)
 
                 val lat = addresses.get(0).latitude
@@ -146,24 +138,27 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
                 with(gMap) {
                     clear()
-                    animateCamera(CameraUpdateFactory.newLatLngZoom(selectedLocation, 13f))
-                    val marker =
-                        addMarker(
-                            MarkerOptions().position(
-                                LatLng(
-                                    lat,
-                                    long
-                                )
-                            ).snippet(address).title(searchText)
+                    animateCamera(
+                        CameraUpdateFactory.newLatLngZoom(
+                            selectedLocation, CAMERA_ZOOM_LEVEL
                         )
+                    )
+                    val marker = addMarker(
+                        MarkerOptions().position(
+                            LatLng(
+                                lat, long
+                            )
+                        ).snippet(address).title(searchText)
+                    )
                     marker.showInfoWindow()
                     // Instantiates a new CircleOptions object and defines the center and radius
 
                     addCircle(
-                        CircleOptions().center(LatLng(lat, long))
-                            .strokeColor(Color.argb(50, 70, 70, 70))
-                            .fillColor(Color.argb(100, 150, 150, 150))
-                            .radius(GEOFENCE_RADIUS)
+                        CircleOptions().center(LatLng(lat, long)).strokeColor(
+                            Color.argb(
+                                50, 70, 70, 70
+                            )
+                        ).fillColor(Color.argb(70, 150, 150, 150)).radius(GEOFENCE_RADIUS)
                     )
 
                 }
@@ -180,50 +175,34 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     }
 
-    private fun createGeoFence(
-        selectedLocation: LatLng,
-        reminder: Reminder,
-        geofencingClient: GeofencingClient
-    ) {
-        val geofence = Geofence.Builder()
-            .setRequestId(GEOFENCE_ID)
-            .setCircularRegion(
-                selectedLocation.latitude,
-                selectedLocation.longitude,
-                GEOFENCE_RADIUS as Float
-            ).setExpirationDuration(GEOFENCE_EXPIRATION as Long)
+    private fun createGeoFence(selectedLocation: LatLng, reminder: Reminder, geofencingClient: GeofencingClient) {
+        val geofence = Geofence.Builder().setRequestId(GEOFENCE_ID).setCircularRegion(
+            selectedLocation.latitude, selectedLocation.longitude, GEOFENCE_RADIUS.toFloat()
+        ).setExpirationDuration(GEOFENCE_EXPIRATION.toLong())
             .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_DWELL)
+            .setLoiteringDelay(GEOFENCE_DWELL_DELAY).build()
+
+        val geofenceRequest = GeofencingRequest.Builder()
+            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER).addGeofence(geofence)
             .build()
 
-        val geofenceRequest =
-            GeofencingRequest.Builder().setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
-                .addGeofence(geofence).build()
-
-        val intent = Intent(this, GeofenceReceiver::class.java)
-            .putExtra("uid", reminder.uid)
-            .putExtra("location", reminder.location)
-            .putExtra("message", reminder.message)
+        val intent = Intent(this, GeofenceReceiver::class.java).putExtra("uid", reminder.uid)
+            .putExtra("location", reminder.location).putExtra("message", reminder.message)
 
         val pendingIntent = PendingIntent.getBroadcast(
-            applicationContext,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT
+            applicationContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             if (ContextCompat.checkSelfPermission(
-                    applicationContext,
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                    applicationContext, Manifest.permission.ACCESS_BACKGROUND_LOCATION
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
 
                 ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(
+                    this, arrayOf(
                         Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                    ),
-                    GEOFENCE_LOCATION_REQUEST_CODE
+                    ), GEOFENCE_LOCATION_REQUEST_CODE
                 )
             } else {
                 geofencingClient.addGeofences(geofenceRequest, pendingIntent)
@@ -240,14 +219,16 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(map: GoogleMap?) {
         gMap = map ?: return
 
+
         if (!isLocationPermissionGranted()) {
+            val permissions = mutableListOf<String>()
+            permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+            permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                permissions.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+            }
             ActivityCompat.requestPermissions(
-                this,
-                arrayOf(
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ),
-                LOCATION_REQUEST_CODE
+                this, permissions.toTypedArray(), LOCATION_REQUEST_CODE
             )
         } else {
             gMap.isMyLocationEnabled = true
@@ -258,7 +239,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                 if (location != null) {
                     with(gMap) {
                         val latLong = LatLng(location.latitude, location.longitude)
-                        animateCamera(CameraUpdateFactory.newLatLngZoom(latLong, 13f))
+                        animateCamera(CameraUpdateFactory.newLatLngZoom(latLong, CAMERA_ZOOM_LEVEL))
                         //addMarker(MarkerOptions().position(latLong))
                     }
                 }
@@ -266,36 +247,40 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             }
 
             // Add marker on map after click
-
             gMap.setOnMapClickListener { location: LatLng ->
 
                 with(gMap) {
                     clear()
                     val latLong = LatLng(location.latitude, location.longitude)
-                    animateCamera(CameraUpdateFactory.newLatLngZoom(latLong, 13f))
+                    animateCamera(CameraUpdateFactory.newLatLngZoom(latLong, CAMERA_ZOOM_LEVEL))
 
                     val geocoder = Geocoder(applicationContext, Locale.getDefault())
                     var title = ""
                     var city = ""
                     try {
 
-                        val addresses =
-                            geocoder.getFromLocation(latLong.latitude, latLong.longitude, 1)
+                        val addresses = geocoder.getFromLocation(
+                            latLong.latitude, latLong.longitude, 1
+                        )
                         val address = addresses.get(0).getAddressLine(0)
                         city = addresses.get(0).locality.toUpperCase()
                         title = address.toString()
                     } catch (e: Exception) {
                     }
 
-                    val marker =
-                        addMarker(MarkerOptions().position(latLong).snippet(title).title(city))
+                    val marker = addMarker(
+                        MarkerOptions().position(latLong).snippet(title).title(
+                            city
+                        )
+                    )
                     marker.showInfoWindow()
 
                     addCircle(
-                        CircleOptions().center(latLong)
-                            .strokeColor(Color.argb(50, 70, 70, 70))
-                            .fillColor(Color.argb(100, 150, 150, 150))
-                            .radius(GEOFENCE_RADIUS)
+                        CircleOptions().center(latLong).strokeColor(
+                            Color.argb(
+                                50, 70, 70, 70
+                            )
+                        ).fillColor(Color.argb(100, 150, 150, 150)).radius(GEOFENCE_RADIUS)
                     )
 
                     selectedLocation = latLong
@@ -303,66 +288,57 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
                 }
 
+
             }
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         if (requestCode == GEOFENCE_LOCATION_REQUEST_CODE) {
-            if (grantResults.isNotEmpty()  && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                createGeoFence(selectedLocation!!, geoFenceReminder, geofencingClient)
+            if (permissions.isNotEmpty() && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                toast("Reminder Application needs background location to work on Android 10 or higher")
             }
         }
 
         if (requestCode == LOCATION_REQUEST_CODE) {
-            if (permissions.size == 1 &&
-                permissions[0] == Manifest.permission.ACCESS_COARSE_LOCATION &&
-                grantResults[0] == PackageManager.PERMISSION_GRANTED
-            ) {
-                gMap.setMyLocationEnabled(true);
-
-            } else if (permissions.size > 1 &&
-                (permissions[0] == Manifest.permission.ACCESS_COARSE_LOCATION &&
-                        grantResults[0] == PackageManager.PERMISSION_GRANTED) ||
-                (permissions[1] == Manifest.permission.ACCESS_FINE_LOCATION &&
-                        grantResults[1] == PackageManager.PERMISSION_GRANTED)
-            ) {
-                gMap.setMyLocationEnabled(true);
+            if (grantResults.isNotEmpty() && (grantResults[0] == PackageManager.PERMISSION_GRANTED || grantResults[1] == PackageManager.PERMISSION_GRANTED)) {
+                gMap.isMyLocationEnabled = true;
+                onMapReady(gMap)
             } else {
                 val toast = Toast.makeText(
-                    this,
-                    "App needs location permision to function",
-                    Toast.LENGTH_LONG
+                    this, "The App needs location permision to function", Toast.LENGTH_LONG
                 )
                 toast.show()
             }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                if (grantResults.isNotEmpty() && grantResults[2] != PackageManager.PERMISSION_GRANTED) {
+                    toast("Reminder Application needs background location to work on Android 10 or higher")
+                }
+            }
+
         }
     }
 
 
     fun isLocationPermissionGranted(): Boolean {
         return ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
+            this, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
-    companion object{
-       fun removeGeoFences(context:Context,triggeringGeofenceList:MutableList<Geofence>){
-           var geofenceIdList= mutableListOf<String>()
-           for (entry in triggeringGeofenceList){
+
+
+    companion object {
+        fun removeGeoFences(context: Context, triggeringGeofenceList: MutableList<Geofence>) {
+            var geofenceIdList = mutableListOf<String>()
+            for (entry in triggeringGeofenceList) {
                 geofenceIdList.add(entry.requestId)
-           }
-           LocationServices.getGeofencingClient(context).removeGeofences(geofenceIdList)
-       }
+            }
+            LocationServices.getGeofencingClient(context).removeGeofences(geofenceIdList)
+        }
     }
 
 }
